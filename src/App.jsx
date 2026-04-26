@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import RouteMap from "./RouteMap.jsx";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const DEFAULT_EV_RANGE = 250;
@@ -401,17 +402,20 @@ function DayRow({ day, evRange, excluded, onToggleExclude, onAddCharger }) {
             <div style={{ color:C.faint, fontSize:12, marginBottom:10 }}>Resolving locations…</div>
           )}
           {places && places.filter(w=>w.geo).length >= 1 && (
-            <a
-              href={geojsonIoRouteUrl(places)}
-              target="_blank" rel="noopener noreferrer"
-              style={{
-                display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-                background:C.blueDim, border:`1px solid #1e3d6a`, borderRadius:7,
-                color:C.blue, fontSize:12, fontFamily:C.mono, textDecoration:"none",
-                padding:"9px 14px", marginBottom:14,
-              }}>
-              🗺 View full route in geojson.io ↗
-            </a>
+            <>
+              <RouteMap places={places} onAddCharger={onAddCharger} />
+              <a
+                href={geojsonIoRouteUrl(places)}
+                target="_blank" rel="noopener noreferrer"
+                style={{
+                  display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+                  background:C.blueDim, border:`1px solid #1e3d6a`, borderRadius:7,
+                  color:C.blue, fontSize:12, fontFamily:C.mono, textDecoration:"none",
+                  padding:"9px 14px", marginBottom:14,
+                }}>
+                🗺 View full route in geojson.io ↗
+              </a>
+            </>
           )}
 
           {/* Place chain */}
@@ -667,25 +671,31 @@ function ChargerSuggestions({ clusters, onAddCharger }) {
         Frequent overnight stays outside your home — if you had charging access here, it would reset your battery. Click the map links to verify the location, then add if it applies.
       </div>
       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-        {clusters.map((c,i) => (
-          <div key={i} style={{ background:"#0a0a0d", border:`1px solid #1a1a2a`, borderRadius:8, padding:"10px 12px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-              <div style={{ flex:1 }}>
-                <div style={{ color:C.text, fontSize:13, fontWeight:500 }}>
-                  {c.semType !== "Unknown" ? c.semType : `Frequent overnight stop #${i+1}`}
+        {clusters.map((c,i) => {
+          const label = c.semType !== "Unknown" ? c.semType : `Frequent overnight stop #${i+1}`;
+          return (
+            <div key={i} style={{ background:"#0a0a0d", border:`1px solid #1a1a2a`, borderRadius:8, padding:"10px 12px" }}>
+              <RouteMap
+                places={[{ geo: c.geo, name: label }]}
+                onAddCharger={onAddCharger}
+                height={180}
+              />
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ color:C.text, fontSize:13, fontWeight:500 }}>{label}</div>
+                  <div style={{ color:C.faint, fontSize:10, fontFamily:C.mono, marginTop:2 }}>
+                    {c.geo[0].toFixed(4)}, {c.geo[1].toFixed(4)} · {c.count} overnight visit{c.count>1?"s":""}
+                  </div>
+                  <MapLinks lat={c.geo[0]} lon={c.geo[1]} label={label} />
                 </div>
-                <div style={{ color:C.faint, fontSize:10, fontFamily:C.mono, marginTop:2 }}>
-                  {c.geo[0].toFixed(4)}, {c.geo[1].toFixed(4)} · {c.count} overnight visit{c.count>1?"s":""}
-                </div>
-                <MapLinks lat={c.geo[0]} lon={c.geo[1]} label={c.semType !== "Unknown" ? c.semType : `Overnight stop #${i+1}`} />
+                <button onClick={() => onAddCharger({ lat:c.geo[0], lon:c.geo[1], label })}
+                  style={{ background:C.greenDim, border:`1px solid ${C.greenBorder}`, color:C.green, borderRadius:6, padding:"5px 10px", fontSize:11, cursor:"pointer", fontFamily:C.mono, whiteSpace:"nowrap", marginLeft:10 }}>
+                  + Add charger
+                </button>
               </div>
-              <button onClick={() => onAddCharger({ lat:c.geo[0], lon:c.geo[1], label: c.semType !== "Unknown" ? c.semType : `Overnight stop #${i+1}` })}
-                style={{ background:C.greenDim, border:`1px solid ${C.greenBorder}`, color:C.green, borderRadius:6, padding:"5px 10px", fontSize:11, cursor:"pointer", fontFamily:C.mono, whiteSpace:"nowrap", marginLeft:10 }}>
-                + Add charger
-              </button>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
