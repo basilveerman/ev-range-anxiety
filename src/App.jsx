@@ -69,30 +69,6 @@ function parseData(json) {
   return { segments, visits };
 }
 
-// ─── Nominatim reverse geocode cache ─────────────────────────────────────────
-const geocodeCache = {}; // "[lat],[lon]" -> "City, Region" string
-
-async function reverseGeocode(lat, lon) {
-  const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
-  if (geocodeCache[key]) return geocodeCache[key];
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`,
-      { headers: { "Accept-Language": "en" } }
-    );
-    const data = await res.json();
-    const a = data.address || {};
-    // Build a readable label: prefer city/town/village + state/province/country
-    const place = a.city || a.town || a.village || a.county || a.state_district || "";
-    const region = a.state || a.province || a.country || "";
-    const label = [place, region].filter(Boolean).join(", ") || data.display_name?.split(",").slice(0,2).join(",") || key;
-    geocodeCache[key] = label;
-    return label;
-  } catch {
-    geocodeCache[key] = key;
-    return key;
-  }
-}
 
 // Collect unique geos for a cycle: start of first seg, end of last seg,
 // plus start/end geos of any intermediate segments (the stops in between)
@@ -317,18 +293,17 @@ function DayRow({ day, evRange, excluded, onToggleExclude, onAddCharger }) {
   const [places, setPlaces] = useState(null);
   const pct = (day.totalMiles / evRange) * 100;
 
-  const handleToggle = useCallback(async () => {
+  const handleToggle = useCallback(() => {
     const next = !open;
     setOpen(next);
     if (next && places === null) {
       const wps = cycleWaypoints(day);
-      const resolved = await Promise.all(
-        wps.map(async wp => ({
-          ...wp,
-          name: wp.geo ? await reverseGeocode(wp.geo[0], wp.geo[1]) : "Unknown",
-        }))
-      );
-      setPlaces(resolved);
+      setPlaces(wps.map(wp => ({
+        ...wp,
+        name: wp.geo
+          ? (wp.semType && wp.semType !== "Unknown" ? wp.semType : `${wp.geo[0].toFixed(3)}, ${wp.geo[1].toFixed(3)}`)
+          : "Unknown",
+      })));
     }
   }, [open, places, day]);
 
