@@ -24,17 +24,19 @@ function makePopup(p, onAddChargerRef) {
   name.textContent = p.name || '';
   wrap.appendChild(name);
 
-  const btn = document.createElement('button');
-  btn.textContent = '+ Add as charger';
-  btn.style.cssText = 'background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:4px;padding:3px 9px;font-size:11px;cursor:pointer;width:100%;';
-  btn.onclick = () => {
-    onAddChargerRef.current?.({ lat: p.geo[0], lon: p.geo[1], label: p.name || `Stop at ${p.geo[0].toFixed(3)},${p.geo[1].toFixed(3)}` });
-  };
-  wrap.appendChild(btn);
+  if (onAddChargerRef.current) {
+    const btn = document.createElement('button');
+    btn.textContent = '+ Add as charger';
+    btn.style.cssText = 'background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:4px;padding:3px 9px;font-size:11px;cursor:pointer;width:100%;';
+    btn.onclick = () => {
+      onAddChargerRef.current({ lat: p.geo[0], lon: p.geo[1], label: p.name || `Stop at ${p.geo[0].toFixed(3)},${p.geo[1].toFixed(3)}` });
+    };
+    wrap.appendChild(btn);
+  }
   return wrap;
 }
 
-export default function RouteMap({ places, onAddCharger, height = 260 }) {
+export default function RouteMap({ places, onAddCharger, height = 260, borderRadius = 7, marginBottom = 14 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const onAddChargerRef = useRef(onAddCharger);
@@ -111,6 +113,6 @@ export default function RouteMap({ places, onAddCharger, height = 260 }) {
   }, []);
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: `${height}px`, borderRadius: 7, overflow: 'hidden', marginBottom: 14 }} />
+    <div ref={containerRef} style={{ width: '100%', height: `${height}px`, borderRadius, overflow: 'hidden', marginBottom }} />
   );
 }

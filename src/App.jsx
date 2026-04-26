@@ -485,8 +485,9 @@ function ChargerPanel({ detectedHomes, homeLocations, suggestions, onAdd, onRemo
 
       {/* Google-detected homes */}
       {detectedHomes.map((h, i) => (
-        <div key={i} style={{ background:"#0a1a0e", border:`1px solid ${C.greenBorder}`, borderRadius:7, padding:"9px 11px" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+        <div key={i} style={{ background:"#0a1a0e", border:`1px solid ${C.greenBorder}`, borderRadius:7, overflow:"hidden" }}>
+          <RouteMap places={[{ geo: h.geo, name: h.label }]} height={140} borderRadius={0} marginBottom={0} />
+          <div style={{ padding:"9px 11px", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
             <div style={{ minWidth:0 }}>
               <div style={{ color:C.text, fontSize:12, fontWeight:600 }}>🏠 {h.label}</div>
               <div style={{ color:C.faint, fontSize:10, fontFamily:C.mono, marginTop:2 }}>
@@ -500,8 +501,9 @@ function ChargerPanel({ detectedHomes, homeLocations, suggestions, onAdd, onRemo
 
       {/* User-added chargers */}
       {homeLocations.map((h, i) => (
-        <div key={i} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:7, padding:"9px 11px" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+        <div key={i} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:7, overflow:"hidden" }}>
+          <RouteMap places={[{ geo: [h.lat, h.lon], name: h.label }]} height={140} borderRadius={0} marginBottom={0} />
+          <div style={{ padding:"9px 11px", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
             <div style={{ minWidth:0 }}>
               <div style={{ color:C.text, fontSize:12, fontWeight:500 }}>⚡ {h.label}</div>
               <div style={{ color:C.faint, fontSize:10, fontFamily:C.mono, marginTop:2 }}>{h.lat.toFixed(4)}, {h.lon.toFixed(4)}</div>
@@ -533,8 +535,15 @@ function ChargerPanel({ detectedHomes, homeLocations, suggestions, onAdd, onRemo
                 const lbl = c.semType !== "Unknown" ? c.semType : `Overnight stop #${i+1}`;
                 const alreadyAdded = homeLocations.some(h => Math.abs(h.lat - c.geo[0]) < 0.001 && Math.abs(h.lon - c.geo[1]) < 0.001);
                 return (
-                  <div key={i} style={{ background:"#0a0a10", border:`1px solid #1a1a2a`, borderRadius:7, padding:"9px 11px" }}>
-                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
+                  <div key={i} style={{ background:"#0a0a10", border:`1px solid #1a1a2a`, borderRadius:7, overflow:"hidden" }}>
+                    <RouteMap
+                      places={[{ geo: c.geo, name: lbl }]}
+                      onAddCharger={alreadyAdded ? null : (h) => onAdd(h)}
+                      height={150}
+                      borderRadius={0}
+                      marginBottom={0}
+                    />
+                    <div style={{ padding:"9px 11px", display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
                       <div style={{ minWidth:0 }}>
                         <div style={{ color:C.text, fontSize:12 }}>{lbl}</div>
                         <div style={{ color:C.faint, fontSize:10, fontFamily:C.mono, marginTop:2 }}>
