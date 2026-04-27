@@ -265,22 +265,20 @@ function YearChart({ yearStats }) {
 // ─── Day row ──────────────────────────────────────────────────────────────────
 function DayRow({ day, evRange, excluded, onToggleExclude, onAddCharger }) {
   const [open, setOpen] = useState(false);
-  const [places, setPlaces] = useState(null);
   const pct = (day.totalMiles / evRange) * 100;
 
-  const handleToggle = useCallback(() => {
-    const next = !open;
-    setOpen(next);
-    if (next && places === null) {
-      const wps = cycleWaypoints(day);
-      setPlaces(wps.map(wp => ({
-        ...wp,
-        name: wp.geo
-          ? (wp.semType && wp.semType !== "Unknown" ? wp.semType : `${wp.geo[0].toFixed(3)}, ${wp.geo[1].toFixed(3)}`)
-          : "Unknown",
-      })));
-    }
-  }, [open, places, day]);
+  // Derived from `day` so it stays current if days merge/split after a charger is added.
+  const places = useMemo(() => {
+    if (!open) return null;
+    return cycleWaypoints(day).map(wp => ({
+      ...wp,
+      name: wp.geo
+        ? (wp.semType && wp.semType !== "Unknown" ? wp.semType : `${wp.geo[0].toFixed(3)}, ${wp.geo[1].toFixed(3)}`)
+        : "Unknown",
+    }));
+  }, [open, day]);
+
+  const handleToggle = useCallback(() => setOpen(v => !v), []);
 
   const semIcon = s => ({ Home:"🏠", Work:"🏢", "Inferred Home":"🏠", "Inferred Work":"🏢", "Searched Address":"📍" }[s] ?? "📍");
 
@@ -343,11 +341,12 @@ function DayRow({ day, evRange, excluded, onToggleExclude, onAddCharger }) {
 
       {open && (
         <div style={{ borderTop:`1px solid ${C.border}`, padding:"12px 14px" }}>
-          {places === null && (
-            <div style={{ color:C.faint, fontSize:12, marginBottom:10 }}>Resolving locations…</div>
-          )}
           {places && places.filter(w=>w.geo).length >= 1 && (
-            <RouteMap places={places} onAddCharger={onAddCharger} />
+            <RouteMap
+              key={places.filter(w=>w.geo).map(w=>`${w.geo[0]},${w.geo[1]}`).join('|')}
+              places={places}
+              onAddCharger={onAddCharger}
+            />
           )}
 
           {places && places.length > 0 && (
@@ -484,8 +483,8 @@ function ChargerPanel({ detectedHomes, homeLocations, suggestions, onAdd, onRemo
       </div>
 
       {/* Google-detected homes */}
-      {detectedHomes.map((h, i) => (
-        <div key={i} style={{ background:"#0a1a0e", border:`1px solid ${C.greenBorder}`, borderRadius:7, overflow:"hidden" }}>
+      {detectedHomes.map((h) => (
+        <div key={`${h.geo[0]},${h.geo[1]}`} style={{ background:"#0a1a0e", border:`1px solid ${C.greenBorder}`, borderRadius:7, overflow:"hidden" }}>
           <RouteMap places={[{ geo: h.geo, name: h.label }]} height={140} borderRadius={0} marginBottom={0} />
           <div style={{ padding:"9px 11px", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
             <div style={{ minWidth:0 }}>
@@ -501,7 +500,7 @@ function ChargerPanel({ detectedHomes, homeLocations, suggestions, onAdd, onRemo
 
       {/* User-added chargers */}
       {homeLocations.map((h, i) => (
-        <div key={i} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:7, overflow:"hidden" }}>
+        <div key={`${h.lat},${h.lon}`} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:7, overflow:"hidden" }}>
           <RouteMap places={[{ geo: [h.lat, h.lon], name: h.label }]} height={140} borderRadius={0} marginBottom={0} />
           <div style={{ padding:"9px 11px", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
             <div style={{ minWidth:0 }}>
@@ -535,7 +534,7 @@ function ChargerPanel({ detectedHomes, homeLocations, suggestions, onAdd, onRemo
                 const lbl = c.semType !== "Unknown" ? c.semType : `Overnight stop #${i+1}`;
                 const alreadyAdded = homeLocations.some(h => Math.abs(h.lat - c.geo[0]) < 0.001 && Math.abs(h.lon - c.geo[1]) < 0.001);
                 return (
-                  <div key={i} style={{ background:"#0a0a10", border:`1px solid #1a1a2a`, borderRadius:7, overflow:"hidden" }}>
+                  <div key={`${c.geo[0]},${c.geo[1]}`} style={{ background:"#0a0a10", border:`1px solid #1a1a2a`, borderRadius:7, overflow:"hidden" }}>
                     <RouteMap
                       places={[{ geo: c.geo, name: lbl }]}
                       onAddCharger={alreadyAdded ? null : (h) => onAdd(h)}
@@ -942,7 +941,7 @@ export default function App() {
                 </div>
                 <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
                   {displayDays.map(d => (
-                    <DayRow key={d.id} day={d} evRange={evRange} excluded={excludedIds.has(d.id)}
+                    <DayRow key={d.startTs} day={d} evRange={evRange} excluded={excludedIds.has(d.id)}
                       onToggleExclude={toggleExclude} onAddCharger={handleAddCharger} />
                   ))}
                   {displayDays.length === 0 && (
